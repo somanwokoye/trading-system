@@ -1,0 +1,27 @@
+services:
+  pipeline:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.pipeline
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=development
+
+  strategy:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.strategy
+    ports:
+      - "8081:8081"
+    environment:
+      - ENV=development
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: trading
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
