@@ -1,6 +1,6 @@
 .PHONY: help setup dev build test lint docker-build deploy-dev clean
 
-PROJECT_ID := trading-system-demo
+PROJECT_ID := trading-system-demo-464911
 REGION := us-central1
 
 help: ## Show this help
