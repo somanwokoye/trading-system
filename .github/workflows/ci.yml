@@ -45,6 +45,21 @@ jobs:
           name: coverage-report
           path: ./coverage.out
 
+  test-matrix:
+    strategy:
+      matrix:
+        go-version: [1.24]
+        test-type: [unit, integration, race]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+    - name: Run ${{ matrix.test-type }} tests
+      run: make test-${{ matrix.test-type }}
+
   # Build and Push Images - Only for deployable branches and PRs
   build-images:
     needs: quality-gate

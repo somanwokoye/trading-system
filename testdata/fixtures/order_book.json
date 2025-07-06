@@ -1,0 +1,38 @@
+{
+    "symbol": "BTC-USD",
+    "timestamp": "2023-07-15T10:30:00Z",
+    "bids": [
+        {
+            "price": 30000.50,
+            "quantity": 1.5,
+            "order_id": "bid-12345"
+        },
+        {
+            "price": 29999.75,
+            "quantity": 2.3,
+            "order_id": "bid-12346"
+        },
+        {
+            "price": 29998.00,
+            "quantity": 5.0,
+            "order_id": "bid-12347"
+        }
+    ],
+    "asks": [
+        {
+            "price": 30001.25,
+            "quantity": 1.2,
+            "order_id": "ask-54321"
+        },
+        {
+            "price": 30002.50,
+            "quantity": 3.4,
+            "order_id": "ask-54322"
+        },
+        {
+            "price": 30005.00,
+            "quantity": 4.1,
+            "order_id": "ask-54323"
+        }
+    ]
+}

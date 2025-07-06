@@ -54,11 +54,68 @@ test: ## Run tests
 	go test -v -race -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
-test-coverage: ## Run tests with coverage
+# Test Infrastructure
+test-setup: ## Set up test infrastructure
+	@echo "Setting up test infrastructure..."
+	docker-compose -f docker-compose.test.yml up -d
+	@echo "Waiting for services to be ready..."
+	sleep 10
+	@echo "✅ Test infrastructure ready"
+
+test-teardown: ## Tear down test infrastructure
+	@echo "Tearing down test infrastructure..."
+	docker-compose -f docker-compose.test.yml down -v
+	@echo "✅ Test infrastructure cleaned up"
+
+# Mock Generation
+generate-mocks: ## Generate mocks for testing
+	@echo "Generating mocks..."
+	go generate ./...
+	mockgen -source=pkg/client/websocket.go -destination=test/mocks/mock_websocket_client.go
+	mockgen -source=internal/storage/interface.go -destination=test/mocks/mock_storage.go
+	@echo "✅ Mocks generated"
+
+# Test Data Management
+load-test-data: ## Load test data into test database
+	@echo "Loading test data..."
+	./scripts/load_test_data.sh
+	@echo "✅ Test data loaded"
+
+test-unit: ## Run unit tests
+	@echo "Running unit tests..."
+	go test -short -v -coverprofile=coverage.out ./...
+	@echo "✅ Unit tests complete"
+
+test-integration: ## Run integration tests
+	@echo "Running integration tests..."
+	go test -tags=integration -v ./...
+	$(MAKE) test-teardown
+	@echo "✅ Integration tests complete"
+
+test-race: ## Test for race conditions
+	@echo "Testing for race conditions..."
+	go test -race -short ./...
+	@echo "✅ Race condition tests complete"
+
+test-performance: ## Run performance tests
+	@echo "Running performance benchmarks..."
+	go test -bench=. -benchmem -benchtime=10s ./...
+	@echo "✅ Performance tests complete"
+
+test-load: ## Run load tests
+	@echo "Running load tests..."
+	./scripts/benchmark.sh
+	@echo "✅ Load tests complete"
+
+test-coverage: test-unit ## Generate detailed coverage report
 	@echo "Generating coverage report..."
-	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report generated: coverage.html"
+	@coverage=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	echo "Coverage: $$coverage%"
+	@echo "✅ Coverage report: coverage.html"
+
+test-all: test-unit test-integration test-race ## Run all tests
+	@echo "✅ All tests passed"
 
 lint: ## Run linter
 	@echo "Running linter..."
@@ -206,9 +263,29 @@ status: ## Show current build context
 	@echo "Region: $(REGION)"
 	@echo "Commit: $(COMMIT_SHA)"
 
-# Quality gates that must pass before deployment
-quality-gate: test lint ## Run all quality checks
+# Quality Gates with Coverage Requirements
+quality-gate: test-unit test-race lint ## All quality checks must pass
+	@echo "Checking coverage requirements..."
+	@coverage=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	if [ $$(echo "$$coverage < 80" | bc -l) -eq 1 ]; then \
+		echo "❌ Coverage $$coverage% is below 80% requirement"; \
+		exit 1; \
+	else \
+		echo "✅ Coverage $$coverage% meets requirements"; \
+	fi
 	@echo "✅ All quality gates passed"
+
+# Test Development Helpers
+test-watch: ## Watch files and run tests on changes
+	@echo "Watching for changes..."
+	find . -name "*.go" | entr -c make test-unit
+
+test-debug: ## Run tests with debugging information
+	go test -v -gcflags="all=-N -l" ./...
+
+test-profile: ## Run tests with CPU profiling
+	go test -cpuprofile=cpu.prof -memprofile=mem.prof -bench=. ./...
+	go tool pprof cpu.prof
 
 # Full CI/CD pipeline simulation
 ci-pipeline: setup quality-gate build docker-build ## Simulate full CI pipeline locally

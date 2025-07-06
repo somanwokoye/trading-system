@@ -1,0 +1,19 @@
+# Test environment configuration
+TEST_DB_HOST=localhost
+TEST_DB_PORT=5432
+TEST_DB_NAME=trading_test
+TEST_DB_USER=test_user
+TEST_DB_PASSWORD=test_password
+
+# Mock exchange endpoints
+MOCK_BINANCE_WS_URL=ws://localhost:8080/ws
+MOCK_COINBASE_WS_URL=ws://localhost:8081/ws
+
+# Test data paths
+TEST_DATA_PATH=./testdata
+FIXTURES_PATH=./testdata/fixtures
+EXPECTED_PATH=./testdata/expected
+
+# Performance test settings
+BENCHMARK_DURATION=30s
+LOAD_TEST_CONCURRENT_USERS=100

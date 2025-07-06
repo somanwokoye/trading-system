@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.pipeline
     ports:
-      - "8080:8080"
+      - 8080:8080
     environment:
       - ENV=development
 
@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.strategy
     ports:
-      - "8081:8081"
+      - 8081:8081
     environment:
       - ENV=development
 
@@ -24,4 +24,4 @@ services:
       POSTGRES_USER: trader
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - 5432:5432

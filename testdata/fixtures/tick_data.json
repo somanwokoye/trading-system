@@ -1,0 +1,49 @@
+{
+    "tick_data": [
+        {
+            "timestamp": "2023-11-01T09:30:00.123Z",
+            "symbol": "AAPL",
+            "price": 175.23,
+            "volume": 1200,
+            "bid": 175.21,
+            "ask": 175.25,
+            "exchange": "NASDAQ"
+        },
+        {
+            "timestamp": "2023-11-01T09:30:00.250Z",
+            "symbol": "AAPL",
+            "price": 175.24,
+            "volume": 800,
+            "bid": 175.22,
+            "ask": 175.26,
+            "exchange": "NASDAQ"
+        },
+        {
+            "timestamp": "2023-11-01T09:30:00.500Z",
+            "symbol": "MSFT",
+            "price": 352.78,
+            "volume": 500,
+            "bid": 352.75,
+            "ask": 352.80,
+            "exchange": "NASDAQ"
+        },
+        {
+            "timestamp": "2023-11-01T09:30:01.125Z",
+            "symbol": "GOOGL",
+            "price": 127.45,
+            "volume": 300,
+            "bid": 127.43,
+            "ask": 127.47,
+            "exchange": "NASDAQ"
+        },
+        {
+            "timestamp": "2023-11-01T09:30:01.300Z",
+            "symbol": "AAPL",
+            "price": 175.26,
+            "volume": 1500,
+            "bid": 175.25,
+            "ask": 175.28,
+            "exchange": "NASDAQ"
+        }
+    ]
+}

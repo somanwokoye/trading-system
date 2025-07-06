@@ -1,0 +1,27 @@
+{
+    "btc_usdt_ticks": [
+      {
+        "symbol": "BTCUSDT",
+        "price": "45000.12345678",
+        "volume": 100,
+        "timestamp": "2024-01-01T00:00:00Z",
+        "side": 0
+      },
+      {
+        "symbol": "BTCUSDT",
+        "price": "45001.87654321",
+        "volume": 150,
+        "timestamp": "2024-01-01T00:00:01Z",
+        "side": 1
+      }
+    ],
+    "eth_usdt_ticks": [
+      {
+        "symbol": "ETHUSDT",
+        "price": "3200.50000000",
+        "volume": 200,
+        "timestamp": "2024-01-01T00:00:00Z",
+        "side": 0
+      }
+    ]
+  }

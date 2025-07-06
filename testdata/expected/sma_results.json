@@ -1,0 +1,12 @@
+{
+	"sma_period_5": {
+		"input_prices": [10.0, 12.0, 13.0, 15.0, 16.0, 18.0, 20.0],
+		"expected_output": [0, 0, 0, 0, 13.2, 14.8, 16.4],
+		"description": "SMA with period 5, first 4 values should be 0 (insufficient data)"
+	},
+	"sma_period_3": {
+		"input_prices": [1.0, 2.0, 3.0, 4.0, 5.0],
+		"expected_output": [0, 0, 2.0, 3.0, 4.0],
+		"description": "SMA with period 3"
+	}
+}
