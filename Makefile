@@ -46,8 +46,16 @@ build: ## Build all binaries
 	mkdir -p bin
 	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(IMAGE_TAG) -X main.Environment=$(ENV)" -o bin/pipeline ./cmd/market-pipeline
 	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(IMAGE_TAG) -X main.Environment=$(ENV)" -o bin/strategy ./cmd/strategy-engine
-	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(IMAGE_TAG) -X main.Environment=$(ENV)" -o bin/backtest ./cmd/backtest
 	@echo "✅ Build complete"
+
+build-backtest: ## Build backtest utility separately
+	@echo "Building backtest utility..."
+	mkdir -p bin
+	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(IMAGE_TAG) -X main.Environment=$(ENV)" -o bin/backtest ./cmd/backtest
+	@echo "✅ Backtest build complete"
+
+build-all: build build-backtest ## Build all binaries including utilities
+	@echo "✅ All builds complete"
 
 test: ## Run tests
 	@echo "Running tests..."
