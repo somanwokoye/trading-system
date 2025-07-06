@@ -1,0 +1,10 @@
+env: staging
+port: 8080
+log_level: info
+database:
+  host: ${DB_HOST}
+  port: 5432
+  name: trading_staging
+monitoring:
+  enabled: true
+  prometheus_endpoint: /metrics

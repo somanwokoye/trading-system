@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-pipeline-dev
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-pipeline
+      env: dev
+  template:
+    metadata:
+      labels:
+        app: trading-pipeline
+        env: dev
+    spec:
+      containers:
+      - name: pipeline
+        image: gcr.io/trading-system-demo-464911/trading-pipeline:dev
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ENV
+          value: development
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m

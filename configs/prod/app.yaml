@@ -1,0 +1,13 @@
+env: production
+port: 8080
+log_level: warn
+database:
+  host: ${DB_HOST}
+  port: 5432
+  name: trading_prod
+monitoring:
+  enabled: true
+  prometheus_endpoint: /metrics
+rate_limiting:
+  enabled: true
+  requests_per_second: 1000

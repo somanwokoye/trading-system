@@ -1,0 +1,9 @@
+env: development
+port: 8080
+log_level: debug
+database:
+  host: localhost
+  port: 5432
+  name: trading_dev
+monitoring:
+  enabled: false

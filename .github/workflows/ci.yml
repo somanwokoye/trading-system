@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, develop]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 # Declare explicit permissions to avoid write-all default
 permissions:
@@ -18,7 +18,7 @@ env:
   REGION: us-central1
 
 jobs:
-  test:
+  quality-gate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,49 +28,157 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache: true
 
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Setup environment
+        run: make setup
 
-      - name: Install dependencies
-        run: go mod download
+      - name: Run quality gates
+        run: make quality-gate
 
-      - name: Run tests
-        run: make test
-
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-
-      - name: Build
+      - name: Build binaries
         run: make build
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          name: coverage-report
+          path: ./coverage.out
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+  # Build and Push Images - Only for deployable branches and PRs
+  build-images:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.event_name == 'pull_request'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Configure Docker
-        run: gcloud auth configure-docker
+    - name: Set PR environment variable
+      if: github.event_name == 'pull_request'
+      run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
 
-      - name: Build and push Docker images
-        run: make docker-push
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Deploy to Cloud Run
-        run: make gcp-deploy
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker authentication
+      run: make auth-docker
+
+    - name: Build and push Docker images
+      run: make docker-push
+
+  # Deploy to Preview Environment - Only for PRs
+  deploy-preview:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    environment: preview
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set PR environment variable
+      run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy to preview
+      run: make deploy-preview
+
+    - name: Comment PR with preview URLs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = process.env.PR_NUMBER;
+          const comment = `🚀 **Preview Environment Deployed**
+
+          **Pipeline Service**: [View Service](https://console.cloud.google.com/run/detail/us-central1/trading-pipeline-pr-${prNumber})
+          **Strategy Service**: [View Service](https://console.cloud.google.com/run/detail/us-central1/trading-strategy-pr-${prNumber})
+
+          Health check endpoints:
+          - Pipeline: \`curl $(gcloud run services describe trading-pipeline-pr-${prNumber} --region=us-central1 --format="value(status.url)")/health\`
+          - Strategy: \`curl $(gcloud run services describe trading-strategy-pr-${prNumber} --region=us-central1 --format="value(status.url)")/health\`
+
+          This preview will be automatically cleaned up when the PR is merged or closed.`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  # Deploy to Staging - Only when pushing to develop
+  deploy-staging:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy to staging
+      run: make deploy-staging
+
+  # Deploy to Production - Only when pushing to master
+  deploy-production:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    environment: production
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy to production
+      run: make deploy-prod
+
+  # Cleanup Preview Environment - When PR is closed
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set PR environment variable
+      run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Cleanup preview environment
+      run: make cleanup-preview
