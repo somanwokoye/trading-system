@@ -1,4 +1,4 @@
-.PHONY: help setup dev build test test-coverage lint docker-build docker-push deploy-preview deploy-staging deploy-prod deploy-branch cleanup-preview gcp-deploy clean status
+.PHONY: help setup dev build build-backtest build-all test test-setup test-teardown generate-mocks load-test-data test-unit test-integration test-race test-performance test-load test-coverage test-all lint docker-build deploy-generic docker-push deploy-preview deploy-staging deploy-prod deploy-branch cleanup-preview auth-docker gcp-deploy clean status quality-gate-dev quality-gate-strict quality-gate test-watch test-debug test-profile ci-pipeline
 
 PROJECT_ID := trading-system-demo-464911
 REGION := us-central1
@@ -140,6 +140,48 @@ docker-build: ## Build Docker images
 		-t gcr.io/$(PROJECT_ID)/trading-strategy:latest-$(ENV) .
 	@echo "✅ Docker build complete"
 
+# Environment-specific resource settings
+ifeq ($(ENV),prod)
+    MAX_INSTANCES := 5
+    MIN_INSTANCES := 1
+    CPU := 2
+    MEMORY := 1Gi
+else ifeq ($(ENV),staging)
+    MAX_INSTANCES := 3
+    MIN_INSTANCES := 1
+    CPU := 1
+    MEMORY := 1Gi
+else
+    MAX_INSTANCES := 2
+    MIN_INSTANCES := 0
+    CPU := 1
+    MEMORY := 512Mi
+endif
+
+deploy-generic: ## Generic deployment with environment-specific resources
+	@echo "Deploying to $(ENV) environment..."
+	gcloud run deploy trading-pipeline$(SERVICE_SUFFIX) \
+		--image gcr.io/$(PROJECT_ID)/trading-pipeline:$(IMAGE_TAG) \
+		--platform managed \
+		--region $(REGION) \
+		--allow-unauthenticated \
+		--set-env-vars="ENV=$(ENV),VERSION=$(IMAGE_TAG)" \
+		--min-instances=$(MIN_INSTANCES) \
+		--max-instances=$(MAX_INSTANCES) \
+		--cpu=$(CPU) \
+		--memory=$(MEMORY)
+	gcloud run deploy trading-strategy$(SERVICE_SUFFIX) \
+		--image gcr.io/$(PROJECT_ID)/trading-strategy:$(IMAGE_TAG) \
+		--platform managed \
+		--region $(REGION) \
+		--allow-unauthenticated \
+		--set-env-vars="ENV=$(ENV),VERSION=$(IMAGE_TAG)" \
+		--min-instances=$(MIN_INSTANCES) \
+		--max-instances=$(MAX_INSTANCES) \
+		--cpu=$(CPU) \
+		--memory=$(MEMORY)
+	@echo "✅ $(ENV) deployment complete"
+
 docker-push: docker-build ## Push Docker images to GCR
 	@echo "Pushing Docker images..."
 	docker push gcr.io/$(PROJECT_ID)/trading-pipeline:$(IMAGE_TAG)
@@ -177,7 +219,7 @@ deploy-staging: ## Deploy to staging environment
 		--allow-unauthenticated \
 		--set-env-vars="ENV=staging" \
 		--min-instances=1 \
-		--max-instances=5 \
+		--max-instances=3 \
 		--cpu=1 \
 		--memory=1Gi
 	gcloud run deploy trading-strategy-staging \
@@ -187,7 +229,7 @@ deploy-staging: ## Deploy to staging environment
 		--allow-unauthenticated \
 		--set-env-vars="ENV=staging" \
 		--min-instances=1 \
-		--max-instances=5 \
+		--max-instances=3 \
 		--cpu=1 \
 		--memory=1Gi
 	@echo "✅ Staging deployment complete"
@@ -201,7 +243,7 @@ deploy-prod: ## Deploy to production environment
 		--allow-unauthenticated \
 		--set-env-vars="ENV=production" \
 		--min-instances=1 \
-		--max-instances=10 \
+		--max-instances=5 \
 		--cpu=2 \
 		--memory=1Gi
 	gcloud run deploy trading-strategy \
@@ -211,7 +253,7 @@ deploy-prod: ## Deploy to production environment
 		--allow-unauthenticated \
 		--set-env-vars="ENV=production" \
 		--min-instances=1 \
-		--max-instances=10 \
+		--max-instances=5 \
 		--cpu=2 \
 		--memory=1Gi
 	@echo "✅ Production deployment complete"
